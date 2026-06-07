@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Пилюля — трекер приёма лекарств</title>
+<style>
+/* ===== RESET & BASE ===== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --primary: #1B5E5A;
+  --primary-dark: #003734;
+  --primary-light: #B8EFE9;
+  --primary-dim: #CDE8E4;
+  --bg: #FBFDFC;
+  --surface: #FFFFFF;
+  --surface-alt: #F0F4F3;
+  --text: #191C1C;
+  --text-secondary: #4A6361;
+  --error: #BA1A1A;
+  --error-container: #F9DEDC;
+  --radius: 16px;
+  --radius-sm: 10px;
+  --shadow: 0 4px 24px rgba(0,32,29,0.08);
+  --shadow-lg: 0 12px 48px rgba(0,32,29,0.12);
+  --transition: 0.35s cubic-bezier(0.4,0,0.2,1);
+}
+
+html { scroll-behavior: smooth; font-size: 16px; }
+
+body {
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.6;
+  overflow-x: hidden;
+}
+
+/* ===== TYPOGRAPHY ===== */
+h1 { font-size: clamp(2.6rem, 5vw, 4.2rem); font-weight: 800; letter-spacing: -1px; line-height: 1.1; }
+h2 { font-size: clamp(2rem, 4vw, 2.8rem); font-weight: 700; letter-spacing: -0.5px; }
+h3 { font-size: clamp(1.3rem, 2vw, 1.6rem); font-weight: 600; }
+.gradient-text {
+  background: linear-gradient(135deg, var(--primary) 0%, #2E8B83 50%, #00BFA5 100%);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ===== NAVIGATION ===== */
+.nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
+  background: rgba(251,253,252,0.82); backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border-bottom: 1px solid rgba(27,94,90,0.08);
+  transition: var(--transition);
+}
+.nav-inner {
+  max-width: 1200px; margin: 0 auto; padding: 0 24px;
+  display: flex; align-items: center; justify-content: space-between; height: 68px;
+}
+.nav-logo {
+  display: flex; align-items: center; gap: 10px; text-decoration: none;
+  font-size: 1.4rem; font-weight: 700; color: var(--primary);
+}
+.nav-logo .pill-icon {
+  width: 38px; height: 22px; background: var(--primary); border-radius: 11px;
+  position: relative; transform: rotate(-15deg);
+}
+.nav-logo .pill-icon::after {
+  content: ""; position: absolute; right: 0; top: 0;
+  width: 19px; height: 22px; background: var(--primary-light); border-radius: 0 11px 11px 0;
+}
+.nav-links { display: flex; gap: 32px; list-style: none; }
+.nav-links a {
+  text-decoration: none; color: var(--text-secondary); font-size: 0.95rem;
+  font-weight: 500; transition: var(--transition); position: relative;
+}
+.nav-links a::after {
+  content: ""; position: absolute; bottom: -4px; left: 0; width: 0; height: 2px;
+  background: var(--primary); transition: var(--transition); border-radius: 2px;
+}
+.nav-links a:hover, .nav-links a.active { color: var(--primary); }
+.nav-links a:hover::after, .nav-links a.active::after { width: 100%; }
+.nav-toggle { display: none; background: none; border: none; cursor: pointer; padding: 8px; }
+.nav-toggle span { display: block; width: 24px; height: 2px; background: var(--primary); margin: 5px 0; border-radius: 2px; transition: var(--transition); }
+
+/* ===== HERO ===== */
+.hero {
+  min-height: 100vh; display: flex; align-items: center; position: relative;
+  padding: 120px 24px 80px; overflow: hidden;
+}
+.hero-bg {
+  position: absolute; inset: 0; z-index: 0;
+  background:
+    radial-gradient(ellipse 80% 60% at 20% 50%, rgba(184,239,233,0.4) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 80% at 80% 80%, rgba(27,94,90,0.08) 0%, transparent 50%),
+    radial-gradient(circle at 10% 20%, rgba(0,191,165,0.06) 0%, transparent 40%);
+}
+.hero-particles {
+  position: absolute; inset: 0; z-index: 0; overflow: hidden;
+}
+.hero-content { max-width: 1200px; margin: 0 auto; position: relative; z-index: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 60px; align-items: center; }
+.hero-text { max-width: 560px; }
+.hero-badge {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: var(--primary-dim); color: var(--primary); padding: 8px 18px;
+  border-radius: 50px; font-size: 0.88rem; font-weight: 600; margin-bottom: 28px;
+  animation: floatIn 0.8s ease-out;
+}
+.hero-badge .dot { width: 8px; height: 8px; background: #00BFA5; border-radius: 50%; animation: pulse 2s infinite; }
+.hero h1 { margin-bottom: 20px; animation: floatIn 0.8s ease-out 0.15s both; }
+.hero p { font-size: 1.15rem; color: var(--text-secondary); margin-bottom: 36px; max-width: 480px; line-height: 1.7; animation: floatIn 0.8s ease-out 0.3s both; }
+.hero-buttons { display: flex; gap: 16px; flex-wrap: wrap; animation: floatIn 0.8s ease-out 0.45s both; }
+.btn {
+  display: inline-flex; align-items: center; gap: 8px; padding: 14px 28px;
+  border-radius: 50px; font-size: 1rem; font-weight: 600; text-decoration: none;
+  cursor: pointer; border: none; transition: var(--transition);
+}
+.btn-primary {
+  background: linear-gradient(135deg, var(--primary) 0%, #00897B 100%);
+  color: #fff; box-shadow: 0 8px 24px rgba(27,94,90,0.3);
+}
+.btn-primary:hover { transform: translateY(-2px); box-shadow: 0 12px 32px rgba(27,94,90,0.4); }
+.btn-outline {
+  border: 2px solid var(--primary); color: var(--primary); background: transparent;
+}
+.btn-outline:hover { background: var(--primary); color: #fff; }
+.hero-visual {
+  position: relative; display: flex; align-items: center; justify-content: center;
+  animation: floatIn 0.8s ease-out 0.6s both;
+}
+.hero-phone {
+  position: relative; z-index: 2;
+}
+.hero-phone img {
+  width: 280px; border-radius: 32px;
+  box-shadow: 0 24px 64px rgba(0,32,29,0.18);
+  transition: var(--transition);
+}
+.hero-phone img:hover { transform: translateY(-8px) rotate(-2deg); box-shadow: 0 32px 72px rgba(0,32,29,0.24); }
+.hero-float-1, .hero-float-2 {
+  position: absolute; border-radius: 20px; box-shadow: var(--shadow); z-index: 1;
+}
+.hero-float-1 { width: 140px; top: -10px; left: -40px; animation: float 5s ease-in-out infinite; }
+.hero-float-2 { width: 120px; bottom: -20px; right: -30px; animation: float 5s ease-in-out 1s infinite; }
+.hero-float-1 img, .hero-float-2 img { width: 100%; border-radius: 16px; }
+
+/* ===== SECTIONS ===== */
+.section { padding: 100px 24px; }
+.section-inner { max-width: 1200px; margin: 0 auto; }
+.section-header { text-align: center; margin-bottom: 60px; }
+.section-header h2 { color: var(--primary); margin-bottom: 12px; }
+.section-header p { color: var(--text-secondary); font-size: 1.1rem; max-width: 600px; margin: 0 auto; }
+.section-label {
+  display: inline-block; font-size: 0.82rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 2px; color: var(--primary); margin-bottom: 16px;
+}
+
+
+<!-- ========== STATS BAR ========== -->
+<div class="stats-bar">
+  <div class="stats-inner">
+    <div class="stat-item">
+      <div class="stat-value" data-count="26">0</div>
+      <div class="stat-label">minSdk (Android 8.0)</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-value" data-count="5">0</div>
+      <div class="stat-label">Экранов приложения</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-value" data-count="100">0</div>
+      <div class="stat-label">% Kotlin / Compose</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-value" data-count="30">0</div>
+      <div class="stat-label">Дней отслеживания</div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== ABOUT ========== -->
+<section class="section" id="about">
+  <div class="section-inner">
+    <div class="section-header fade-in">
+      <span class="section-label">О проекте</span>
+      <h2>Почему Пилюля?</h2>
+      <p>Мы создали приложение, которое делает приём лекарств простым, безопасным и организованным. Больше никаких забытых таблеток.</p>
+    </div>
+
+    <div class="about-grid">
+      <div class="about-card fade-in delay-1">
+        <div class="about-icon">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        </div>
+        <h3>Умные напоминания</h3>
+        <p>Гибкое расписание с поддержкой дней недели. Точные будильники через AlarmManager — приложение разбудит вас вовремя.</p>
+      </div>
+      <div class="about-card fade-in delay-2">
+        <div class="about-icon">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        </div>
+        <h3>Учёт остатка</h3>
+        <p>Автоматическое списание таблеток при отметке «Принято». Уведомление, когда запас подходит к концу.</p>
+      </div>
+      <div class="about-card fade-in delay-3">
+        <div class="about-icon">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+        </div>
+        <h3>Журнал приверженности</h3>
+        <p>Статистика adherence за 30 дней. Наглядный прогресс-бар и история каждого приёма — всё под рукой.</p>
+      </div>
+    </div>
+
+    <div class="feature-showcase">
+      <div class="feature-text fade-in">
+        <h3>Современный стек технологий</h3>
+        <p>Приложение построено на Kotlin и Jetpack Compose с Material 3 — это современный, отзывчивый и красивый интерфейс. Под капотом — Room для хранения данных и AlarmManager для точных уведомлений.</p>
+        <ul class="feature-list">
+          <li>Kotlin + Jetpack Compose + Material 3 (Dynamic Color)</li>
+          <li>Room Database — надёжное локальное хранилище</li>
+          <li>AlarmManager — точные напоминания с пробуждением устройства</li>
+          <li>WorkManager — фоновая проверка остатка каждые 12 часов</li>
+          <li>Navigation Compose — плавная навигация между экранами</li>
+        </ul>
+      </div>
+      <div class="feature-image fade-in delay-1">
+        <img src="img/04_med_edit_new.png" alt="Редактор лекарства" loading="lazy">
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ========== TEAM ========== -->
+<section class="section" id="team">
+  <div class="section-inner">
+    <div class="section-header fade-in">
+      <span class="section-label">Участники</span>
+      <h2>Команда проекта</h2>
+      <p>Пять разработчиков, одна цель — сделать управление здоровьем простым и доступным.</p>
+    </div>
+
+    <div class="team-grid">
+      <div class="member-card fade-in delay-1">
+        <div class="member-avatar avatar-1">СГ</div>
+        <h3>Синкин Г.А.</h3>
+        <span class="member-role">Team Lead &amp; Android-разработчик</span>
+        <p class="member-desc">Архитектура приложения, навигация, система уведомлений. Спроектировал структуру Room и реализовал AlarmManager-напоминания с обработкой action-кнопок.</p>
+        <div class="contribution-tags">
+          <span class="contribution-tag">Room DB</span>
+          <span class="contribution-tag">AlarmManager</span>
+          <span class="contribution-tag">Navigation Compose</span>
+          <span class="contribution-tag">WorkManager</span>
+        </div>
+      </div>
+
+      <div class="member-card fade-in delay-2">
+        <div class="member-avatar avatar-2">КудК</div>
+        <h3>Кудрявцева К.А.</h3>
+        <span class="member-role">UI/UX-дизайнер</span>
+        <p class="member-desc">Дизайн всех экранов в Material 3, вёрстка Compose UI. Реализовала HomeScreen, MedicationEditScreen, HistoryScreen — с динамическими формами и анимациями переходов.</p>
+        <div class="contribution-tags">
+          <span class="contribution-tag">Jetpack Compose</span>
+          <span class="contribution-tag">Material 3</span>
+          <span class="contribution-tag">Figma-мокапы</span>
+          <span class="contribution-tag">Dynamic Color</span>
+        </div>
+      </div>
+
+      <div class="member-card fade-in delay-3">
+        <div class="member-avatar avatar-3">КовД</div>
+        <h3>Ковалёв Д.Г.</h3>
+        <span class="member-role">Разработчик слоя данных (Room/Repo)</span>
+        <p class="member-desc">Спроектировал схему БД: Medication, ScheduleEntry, IntakeLog. Реализовал MedicationRepository — бизнес-логика приёма, пропуска, расчёта adherence.</p>
+        <div class="contribution-tags">
+          <span class="contribution-tag">Room DAO</span>
+          <span class="contribution-tag">Repository</span>
+          <span class="contribution-tag">Adherence</span>
+          <span class="contribution-tag">Flow-запросы</span>
+        </div>
+      </div>
+
+      <div class="member-card fade-in delay-1">
+        <div class="member-avatar avatar-4">МКА</div>
+        <h3>Мартынов К.А.</h3>
+        <span class="member-role">Тестировщик (QA)</span>
+        <p class="member-desc">Полный цикл тестирования: unit-тесты, граничные случаи, permissions, восстановление будильников. Отладка adherence-расчётов и day-picker.</p>
+        <div class="contribution-tags">
+          <span class="contribution-tag">QA / Testing</span>
+          <span class="contribution-tag">Permissions</span>
+          <span class="contribution-tag">BootReceiver</span>
+          <span class="contribution-tag">Debug</span>
+        </div>
+      </div>
+
+      <div class="member-card fade-in delay-2">
+        <div class="member-avatar avatar-5">НАА</div>
+        <h3>Никифорова А.А.</h3>
+        <span class="member-role">Медийный менеджер</span>
+        <p class="member-desc">Подготовка документации, мокапов, лендинга. Ведение журнала прогресса, оформление проектной документации по ГОСТ.</p>
+        <div class="contribution-tags">
+          <span class="contribution-tag">Документация</span>
+          <span class="contribution-tag">Markdown</span>
+          <span class="contribution-tag">Лендинг</span>
+          <span class="contribution-tag">Презентация</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ========== JOURNAL ========== -->
+<section class="section" id="journal">
+  <div class="section-inner">
+    <div class="section-header fade-in">
+      <span class="section-label">Журнал</span>
+      <h2>Прогресс работы</h2>
+      <p>Ключевые этапы разработки проекта «Пилюля».</p>
+    </div>
+
+    <div class="timeline">
+      <div class="timeline-entry fade-in delay-1">
+        <div class="timeline-date">15 марта 2026</div>
+        <div class="timeline-dot"></div>
+        <div class="timeline-card">
+          <h3>Старт проекта: анализ требований</h3>
+          <p>Провели исследование предметной области. Определили минимально жизнеспособный продукт (MVP): список лекарств, расписание, напоминания, журнал. Выбрали стек: Kotlin, Jetpack Compose, Room, AlarmManager. Сформировали команду из пяти человек и распределили роли.</p>
+          <div class="timeline-meta">
+            <span>Синкин, Кудрявцева, Ковалёв, Мартынов, Никифорова</span>
+            <span>· 8 часов</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="timeline-entry fade-in delay-2">
+        <div class="timeline-date">5 апреля 2026</div>
+        <div class="timeline-dot"></div>
+        <div class="timeline-card">
+          <h3>MVP: архитектура и база данных</h3>
+          <p>Спроектировали схему Room (Medication, ScheduleEntry, IntakeLog). Реализовали репозиторий с бизнес-логикой приёма и пропуска. Создали базовую навигацию между экранами и первые Compose-компоненты. Первый билд успешно собран — можно добавлять лекарства!</p>
+          <div class="timeline-meta">
+            <span>Синкин, Ковалёв</span>
+            <span>· 16 часов</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="timeline-entry fade-in delay-3">
+        <div class="timeline-date">28 апреля 2026</div>
+        <div class="timeline-dot"></div>
+        <div class="timeline-card">
+          <h3>Система уведомлений и UI</h3>
+          <p>Интегрировали AlarmManager с точными будильниками и action-кнопками (Принять / Пропустить / Отложить). Реализовали уведомления о низком остатке через WorkManager. Завершили вёрстку всех экранов: Home, Medications, Edit, History. Кудрявцева сделала мокапы в Figma для документации. Никифорова начала оформление проектной документации.</p>
+          <div class="timeline-meta">
+            <span>Синкин, Кудрявцева, Никифорова</span>
+            <span>· 22 часа</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="timeline-entry fade-in">
+        <div class="timeline-date">18 мая 2026</div>
+        <div class="timeline-dot"></div>
+        <div class="timeline-card">
+          <h3>Тестирование, отладка и документация</h3>
+          <p>Мартынов провёл полный цикл тестирования: проверил корректность расчёта adherence, обработку граничных случаев (пустая БД, отсутствие разрешений), восстановление будильников после перезагрузки. Исправили баги с day-picker и обновлением UI. Никифорова завершила документацию и лендинг. Проект готов к защите!</p>
+          <div class="timeline-meta">
+            <span>Вся команда</span>
+            <span>· 14 часов</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ========== RESOURCES ========== -->
+<section class="section" id="resources">
+  <div class="section-inner">
+    <div class="section-header fade-in">
+      <span class="section-label">Ресурсы</span>
+      <h2>Полезные материалы</h2>
+      <p>Ссылки, которые помогли нам в разработке и помогут вам понять проект.</p>
+    </div>
+
+    <div class="resources-grid">
+      <a href="https://developer.android.com/jetpack/compose" class="resource-card fade-in delay-1" target="_blank" rel="noopener">
+        <div class="resource-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5 12 2"/><line x1="12" y1="22" x2="12" y2="15.5"/><polyline points="22 8.5 12 15.5 2 8.5"/></svg>
+        </div>
+        <h3>Jetpack Compose</h3>
+        <p>Официальная документация по современному UI-фреймворку Android. Основы, компоненты, темы.</p>
+        <span class="resource-link">developer.android.com →</span>
+      </a>
+
+      <a href="https://developer.android.com/training/data-storage/room" class="resource-card fade-in delay-2" target="_blank" rel="noopener">
+        <div class="resource-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+        </div>
+        <h3>Room Database</h3>
+        <p>Библиотека для работы с SQLite в Android: entity, DAO, миграции, Flow-запросы.</p>
+        <span class="resource-link">developer.android.com →</span>
+      </a>
+
+      <a href="https://m3.material.io/" class="resource-card fade-in delay-3" target="_blank" rel="noopener">
+        <div class="resource-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+        </div>
+        <h3>Material Design 3</h3>
+        <p>Дизайн-система Google. Dynamic Color, типографика, компоненты, гайдлайны.</p>
+        <span class="resource-link">m3.material.io →</span>
+      </a>
+
+      <a href="https://kotlinlang.org/" class="resource-card fade-in" target="_blank" rel="noopener">
+        <div class="resource-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/></svg>
+        </div>
+        <h3>Kotlin Language</h3>
+        <p>Современный язык для Android-разработки. Null-safety, корутины, extension-функции.</p>
+        <span class="resource-link">kotlinlang.org →</span>
+      </a>
+
+      <a href="https://developer.android.com/training/scheduling/alarms" class="resource-card fade-in" target="_blank" rel="noopener">
+        <div class="resource-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        </div>
+        <h3>AlarmManager Guide</h3>
+        <p>Руководство по работе с будильниками: точные, неточные, разрешения, Doze Mode.</p>
+        <span class="resource-link">developer.android.com →</span>
+      </a>
+
+      <a href="https://github.com/" class="resource-card fade-in" target="_blank" rel="noopener">
+        <div class="resource-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
+        </div>
+        <h3>Исходный код</h3>
+        <p>Репозиторий проекта на GitHub. Код, конфигурации, документация.</p>
+        <span class="resource-link">github.com →</span>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- ========== FOOTER ========== -->
+<footer class="footer">
+  <div class="footer-inner">
+    <div class="footer-grid">
+      <div>
+        <div class="footer-brand">
+          <div class="pill-icon"></div>
+          <span>Пилюля</span>
+        </div>
+        <p class="footer-desc">Трекер приёма лекарств для Android. Проект по дисциплине «Проектная деятельность», 2026.</p>
+      </div>
+      <div>
+        <h4>Навигация</h4>
+        <ul class="footer-links">
+          <li><a href="#home">Главная</a></li>
+          <li><a href="#about">О проекте</a></li>
+          <li><a href="#team">Участники</a></li>
+          <li><a href="#journal">Журнал</a></li>
+          <li><a href="#resources">Ресурсы</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Технологии</h4>
+        <ul class="footer-links">
+          <li><a href="#">Kotlin</a></li>
+          <li><a href="#">Jetpack Compose</a></li>
+          <li><a href="#">Room Database</a></li>
+          <li><a href="#">Material Design 3</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>space.dyspy.pilulya · v1.0.0 · &copy; 2026 Пилюля. Все права защищены.</p>
+    </div>
+  </div>
+</footer>
+
+<!-- ========== SCROLL TO TOP ========== -->
+<button class="scroll-top" id="scrollTop" aria-label="Наверх">
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="18 15 12 9 6 15"/></svg>
+</button>
+
+<script>
+// ===== PARTICLES =====
+(function() {
+  const canvas = document.getElementById('particles');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  let w, h, particles;
+  const colors = ['rgba(27,94,90,0.15)', 'rgba(184,239,233,0.2)', 'rgba(0,191,165,0.12)'];
+
+  function resize() {
+    w = canvas.width = canvas.offsetWidth;
+    h = canvas.height = canvas.offsetHeight;
+  }
+
+  function createParticles() {
+    particles = [];
+    const count = Math.floor(w * h / 18000);
+    for (let i = 0; i < count; i++) {
+      particles.push({
+        x: Math.random() * w, y: Math.random() * h,
+        r: Math.random() * 3 + 1,
+        vx: (Math.random() - 0.5) * 0.4,
+        vy: (Math.random() - 0.5) * 0.4,
+        color: colors[Math.floor(Math.random() * colors.length)]
+      });
+    }
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, w, h);
+    for (const p of particles) {
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      ctx.fillStyle = p.color;
+      ctx.fill();
+      p.x += p.vx; p.y += p.vy;
+      if (p.x < -10) p.x = w + 10; if (p.x > w + 10) p.x = -10;
+      if (p.y < -10) p.y = h + 10; if (p.y > h + 10) p.y = -10;
+    }
+    for (let i = 0; i < particles.length; i++) {
+      for (let j = i + 1; j < particles.length; j++) {
+        const dx = particles[i].x - particles[j].x;
+        const dy = particles[i].y - particles[j].y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < 100) {
+          ctx.beginPath();
+          ctx.moveTo(particles[i].x, particles[i].y);
+          ctx.lineTo(particles[j].x, particles[j].y);
+          ctx.strokeStyle = 'rgba(27,94,90,' + (0.06 * (1 - dist / 100)) + ')';
+          ctx.lineWidth = 0.5;
+          ctx.stroke();
+        }
+      }
+    }
+    requestAnimationFrame(draw);
+  }
+
+  resize(); createParticles(); draw();
+  window.addEventListener('resize', () => { resize(); createParticles(); });
+})();
+
+// ===== NAVIGATION =====
+(function() {
+  const nav = document.getElementById('nav');
+  const navLinks = document.getElementById('navLinks');
+  const navToggle = document.getElementById('navToggle');
+  const links = navLinks.querySelectorAll('a');
+  const sections = document.querySelectorAll('section[id], .hero[id]');
+
+  navToggle.addEventListener('click', () => navLinks.classList.toggle('open'));
+
+  links.forEach(a => a.addEventListener('click', () => navLinks.classList.remove('open')));
+
+  window.addEventListener('scroll', () => {
+    const scrollY = window.scrollY;
+    nav.style.boxShadow = scrollY > 20 ? '0 4px 24px rgba(0,32,29,0.08)' : 'none';
+
+    let current = '';
+    sections.forEach(s => {
+      const top = s.offsetTop - 100;
+      if (scrollY >= top) current = s.getAttribute('id');
+    });
+    links.forEach(a => {
+      a.classList.toggle('active', a.getAttribute('href') === '#' + current);
+    });
+  });
+})();
+
+// ===== SCROLL TO TOP =====
+(function() {
+  const btn = document.getElementById('scrollTop');
+  window.addEventListener('scroll', () => {
+    btn.classList.toggle('visible', window.scrollY > 500);
+  });
+  btn.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
+})();
+
+// ===== STATS COUNTER =====
+(function() {
+  const stats = document.querySelectorAll('.stat-value[data-count]');
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (!entry.isIntersecting) return;
+      const el = entry.target;
+      const target = parseInt(el.dataset.count);
+      const duration = 1500;
+      const start = performance.now();
+
+      function update(now) {
+        const progress = Math.min((now - start) / duration, 1);
+        const eased = 1 - Math.pow(1 - progress, 3);
+        el.textContent = Math.round(eased * target);
+        if (progress < 1) requestAnimationFrame(update);
+      }
+      requestAnimationFrame(update);
+      observer.unobserve(el);
+    });
+  }, { threshold: 0.5 });
+
+  stats.forEach(el => observer.observe(el));
+})();
+
+// ===== FADE-IN OBSERVER =====
+(function() {
+  const elems = document.querySelectorAll('.fade-in');
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.style.animationPlayState = 'running';
+        observer.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.15 });
+
+  elems.forEach(el => {
+    el.style.animationPlayState = 'paused';
+    observer.observe(el);
+  });
+
+  // trigger visible ones immediately
+  setTimeout(() => {
+    elems.forEach(el => {
+      const rect = el.getBoundingClientRect();
+      if (rect.top < window.innerHeight) {
+        el.style.animationPlayState = 'running';
+        observer.unobserve(el);
+      }
+    });
+  }, 100);
+})();
+</script>
+
+</body>
+</html>
